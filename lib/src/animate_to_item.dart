@@ -30,6 +30,10 @@ class AnimateToItem {
     if (index == null) {
       return;
     }
+
+    // Check if position is valid before starting
+    if (!position.hasPixels) return;
+
     final start = position.pixels;
     final estimatedTarget = extentManager.getOffsetToReveal(
       index,
@@ -52,6 +56,13 @@ class AnimateToItem {
       curve: curve(estimatedDistance),
     );
     animation.addListener(() {
+      // Check if the controller or position is dead
+      if (!position.hasPixels) {
+        controller.stop();
+        controller.dispose();
+        return;
+      }
+
       final value = animation.value;
       final index = this.index();
       if (index == null) {
@@ -81,7 +92,14 @@ class AnimateToItem {
         // Do not jump when already at the edge. This prevents scrollbar handle artifacts.
         return;
       }
-      position.jumpTo(jumpPosition);
+
+      try {
+        position.jumpTo(jumpPosition);
+      } catch (e) {
+        // Stop the animation immediately to prevent further crashes.
+        controller.stop();
+        controller.dispose();
+      }
     });
     controller.forward();
   }
